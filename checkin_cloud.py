@@ -145,8 +145,12 @@ def get_status(token, uid):
     return code, body
 
 
-def do_checkin(st, uid):
-    """返回 (ok, info, changed)"""
+def do_checkin(st, uid, claim=True):
+    """返回 (ok, info, changed)
+
+    claim=False 时（redraw 模式）只查状态、绝不调用领取接口——
+    用于「本地已经签完，云端只负责把网页重绘一遍」。
+    """
     token = st.get("accessToken")
     code, body = get_status(token, uid)
     info = {"stage": "status", "http": code, "body": body}
@@ -165,6 +169,11 @@ def do_checkin(st, uid):
     data = body.get("data") or {}
     info["data"] = data
     claimed_now = False
+    if not data.get("today_checked_in") and not claim:
+        log("  · redraw 模式：不发领取请求，只重绘看板")
+        info["data"] = data
+        info["claimed_now"] = False
+        return True, info, False
     if not data.get("today_checked_in"):
         c2, b2 = api(API_CHECKIN, token, uid)
         info["claim_http"] = c2
@@ -193,7 +202,7 @@ def do_checkin(st, uid):
     return True, info, False
 
 
-def build_payload(data, st, ok, claimed_now, extra):
+def build_payload(data, st, ok, claimed_now, extra, stamp="云端 · 每天 23:58"):
     now = cst_now()
     today = now.date()
     dates = set(data.get("checkin_dates") or []) if isinstance(data.get("checkin_dates"), list) else set()
@@ -214,7 +223,7 @@ def build_payload(data, st, ok, claimed_now, extra):
 
     return {
         "mode": "cloud",
-        "stamp": "云端 · 每天 23:58",
+        "stamp": stamp,
         "points": data.get("total_credits"),
         "capacity": None,
         "packs": None,
@@ -247,8 +256,11 @@ def render(payload):
 
 def main():
     uid = os.environ.get("WB_UID", "").strip()
+    # full = 定时兜底签到；redraw = 本地已签，云端只重绘看板
+    mode = (os.environ.get("WB_MODE") or "full").strip().lower()
+    redraw = mode == "redraw"
     log("=" * 46)
-    log("WorkBuddy 签到 · %s" % cst_now().strftime("%Y-%m-%d %H:%M:%S"))
+    log("WorkBuddy 签到 · %s（模式 %s）" % (cst_now().strftime("%Y-%m-%d %H:%M:%S"), mode))
     log("=" * 46)
 
     st = load_state()
@@ -256,7 +268,7 @@ def main():
         log("× state.enc.json 里没有令牌，无法继续")
         return 2
 
-    ok, info, changed = do_checkin(st, uid)
+    ok, info, changed = do_checkin(st, uid, claim=not redraw)
     data = info.get("data") or {}
 
     # 记录运行历史
@@ -266,6 +278,7 @@ def main():
     except Exception:
         pass
     hist.append({"at": cst_now().strftime("%Y-%m-%d %H:%M"),
+                 "src": mode,
                  "ok": bool(ok),
                  "claimed": bool(info.get("claimed_now")),
                  "checked_in": bool(data.get("today_checked_in"))})
@@ -276,8 +289,13 @@ def main():
     if not ok:
         log("× 本次签到没有完成：" + json.dumps(info, ensure_ascii=False)[:400])
 
-    extra = "云端已签" if info.get("claimed_now") else ("本地已签，云端仅记录" if ok else "签到失败")
-    payload = build_payload(data, st, ok, bool(info.get("claimed_now")), extra)
+    if redraw:
+        extra = "本地已签，云端同步重绘" if ok else "重绘失败"
+        stamp = "本地已签 · 云端重绘"
+    else:
+        extra = "云端已签" if info.get("claimed_now") else ("本地已签，云端仅记录" if ok else "签到失败")
+        stamp = "云端 · 每天 23:58"
+    payload = build_payload(data, st, ok, bool(info.get("claimed_now")), extra, stamp)
     render(payload)
     log("看板已生成：dashboard.html / index.html")
 
