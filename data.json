@@ -11,6 +11,13 @@
    "ok": true,
    "claimed": false,
    "checked_in": true
+  },
+  {
+   "at": "2026-11-08 15:25",
+   "src": "redraw",
+   "ok": true,
+   "claimed": false,
+   "checked_in": true
   }
  ]
 }
