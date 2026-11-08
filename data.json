@@ -5,6 +5,12 @@
    "ok": true,
    "claimed": false,
    "checked_in": true
+  },
+  {
+   "at": "2026-11-08 15:16",
+   "ok": true,
+   "claimed": false,
+   "checked_in": true
   }
  ]
 }
