@@ -1,0 +1,9 @@
+# 本地敏感文件，绝不提交
+STATE_KEY.txt
+*.backup.json
+login-state.backup.json
+token*.json
+secret_key.json
+preview.png
+__pycache__/
+*.pyc
