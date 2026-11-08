@@ -7,7 +7,16 @@ on:
     - cron: '45 15 * * *'
     # 15:58 UTC = 23:58 北京（主档）
     - cron: '58 15 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'full = 正常签到（云端兜底）；redraw = 只重绘看板（本地已签时触发）'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - redraw
 
 permissions:
   contents: write
@@ -33,6 +42,7 @@ jobs:
         env:
           WB_STATE_KEY: ${{ secrets.WB_STATE_KEY }}
           WB_UID: ${{ secrets.WB_UID }}
+          WB_MODE: ${{ github.event.inputs.mode || 'full' }}
         run: python checkin_cloud.py
 
       - name: 提交看板与令牌状态
