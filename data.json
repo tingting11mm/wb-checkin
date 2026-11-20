@@ -186,6 +186,13 @@
    "ok": true,
    "claimed": false,
    "checked_in": true
+  },
+  {
+   "at": "2026-11-21 06:22",
+   "src": "full",
+   "ok": true,
+   "claimed": true,
+   "checked_in": true
   }
  ]
 }
