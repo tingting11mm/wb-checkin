@@ -242,6 +242,13 @@
    "ok": true,
    "claimed": false,
    "checked_in": true
+  },
+  {
+   "at": "2026-11-25 08:08",
+   "src": "full",
+   "ok": true,
+   "claimed": true,
+   "checked_in": true
   }
  ]
 }
